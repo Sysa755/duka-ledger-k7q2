@@ -1,0 +1,938 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1B3FA0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1320" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Duka Ledger">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Duka Ledger</title>
+<style>
+/* Layout: one-column phone app styled like a counter book: ruled lines, red margin rule, ballpoint-blue ink, double-underlined totals. */
+:root{
+  --paper:#F2F6FA; --card:#FFFFFF; --text:#16203A; --muted:#566178; --line:#D3DCE8;
+  --ink:#1B3FA0; --on-ink:#FFFFFF; --margin:#D9493C;
+  --good:#17724A; --on-good:#FFFFFF; --good-bg:#E2F4EA;
+  --warn:#8A5A00; --warn-bg:#FFF0CF; --bad:#B0261C; --bad-bg:#FDE6E3;
+  --scrim:rgba(10,15,30,.5);
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#0E1320; --card:#171E2E; --text:#E8ECF5; --muted:#9BA7BE; --line:#2A3448;
+    --ink:#8EA8FF; --on-ink:#0E1320; --margin:#E8685C;
+    --good:#5CCB92; --on-good:#0E1320; --good-bg:#16372A;
+    --warn:#F2B84B; --warn-bg:#3A2D0E; --bad:#FF8C82; --bad-bg:#40191A;
+    --scrim:rgba(0,0,0,.65);
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--text);font:16px/1.4 var(--font);-webkit-tap-highlight-color:transparent}
+body.noscroll{overflow:hidden}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+h2,h3,p{margin:0}
+
+#app{max-width:560px;margin:0 auto;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px))}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:max(14px,env(safe-area-inset-top,0px)) 4px}
+.brand{font-weight:800;font-size:1.3rem;letter-spacing:-.01em;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brand small{display:block;font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+#view{padding-bottom:170px}
+
+.total{padding:12px 0 14px}
+.label,.lbl{display:block;font-size:.72rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+.total .label{margin:0 0 4px}
+.big{display:inline-block;font-size:2.4rem;line-height:1.15;font-weight:800;font-variant-numeric:tabular-nums;border-bottom:4px double var(--ink);padding-bottom:2px}
+.subline{margin-top:8px;color:var(--muted);font-size:.9rem}
+.bad-t{color:var(--bad);font-weight:700}
+.hint{color:var(--muted);font-size:.88rem;margin:6px 0 10px}
+.h{font-size:1.3rem;margin:12px 0 4px}
+
+.inp{display:block;width:100%;min-height:48px;padding:0 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--paper)}
+.inp:focus{border-color:var(--ink)}
+.inp.big-in{font-size:1.6rem;font-weight:800;min-height:58px;font-variant-numeric:tabular-nums}
+#view>.inp{background:var(--card);margin-bottom:12px}
+
+.btn{min-height:48px;padding:0 18px;border-radius:10px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);font-weight:700;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;text-align:center}
+.btn.primary{background:var(--ink);color:var(--on-ink)}
+.btn.pay{border-color:var(--good);color:var(--good)}
+.btn.pay.primary{background:var(--good);color:var(--on-good)}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
+.btn.ghost{border-color:var(--line);color:var(--muted)}
+.btn.sm{min-height:40px;padding:0 12px;font-size:.88rem}
+.btns{display:flex;gap:10px;margin-top:16px}
+.btns .btn{flex:1}
+.link{background:none;border:0;padding:6px 0;color:var(--ink);text-decoration:underline;font-weight:600;min-height:32px}
+.link.sm{font-size:.8rem;color:var(--muted);font-weight:500}
+
+.book{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.row{border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row-main{display:flex;width:100%;align-items:center;gap:12px;padding:12px 14px;background:none;border:0;text-align:left;min-height:60px}
+.who{flex:1;min-width:0}
+.who b{display:block;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who small{color:var(--muted);font-size:.82rem}
+.rt{text-align:right;flex:none}
+.amt{display:block;font-weight:800;font-variant-numeric:tabular-nums}
+.amt.good{color:var(--good)}
+.amt.zero{color:var(--muted)}
+.rt small{color:var(--muted);font-size:.8rem}
+.rt small.bad-t{color:var(--bad)}
+.row-act{display:flex;flex-wrap:wrap;gap:8px;padding:0 14px 12px}
+.tag{display:inline-block;font-size:.68rem;font-weight:800;padding:2px 7px;border-radius:99px;background:var(--line);color:var(--muted);margin-left:6px;vertical-align:1px}
+.tag.bad{background:var(--bad-bg);color:var(--bad)}
+.tag.warn{background:var(--warn-bg);color:var(--warn)}
+.none{padding:26px 16px;text-align:center;color:var(--muted)}
+
+.banner{display:flex;gap:12px;align-items:center;justify-content:space-between;background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:.9rem;font-weight:600}
+.banner .btn{min-height:40px;border-color:currentColor;color:inherit;flex:none}
+
+.empty{padding:28px 4px;display:flex;flex-direction:column;gap:12px}
+.empty h2{font-size:1.4rem}
+.empty p{color:var(--muted)}
+
+.seg{display:flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;margin:6px 0 12px}
+.seg button{flex:1;min-height:46px;background:var(--card);border:0;border-right:1px solid var(--line);font-weight:700;color:var(--muted)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--on-ink)}
+.seg button.pay[aria-pressed="true"]{background:var(--good);color:var(--on-good)}
+
+.back{background:none;border:0;color:var(--ink);font-weight:700;padding:12px 0 4px;min-height:44px}
+.head{padding:4px 0 14px}
+.head h2{font-size:1.5rem;overflow-wrap:anywhere}
+.head .ph{color:var(--muted)}
+.head .big{margin-top:8px}
+.head .lim{color:var(--muted);font-size:.88rem;margin-top:8px}
+.two-btn{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.two-btn .btn{min-height:52px}
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}
+
+.led-h,.led{display:grid;grid-template-columns:58px minmax(0,1fr) auto}
+.led-h{background:var(--paper);border-bottom:3px double var(--line);font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.led-h span{padding:8px 10px}
+.led{border-bottom:1px solid var(--line)}
+.led:last-child{border-bottom:0}
+.led .d{border-right:2px solid var(--margin);padding:10px 4px;text-align:center;line-height:1.1;font-variant-numeric:tabular-nums}
+.led .d b{display:block;font-size:1.2rem}
+.led .d span{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.led .m{padding:10px 12px;min-width:0}
+.led .m .what{font-weight:600;overflow-wrap:anywhere}
+.led .m .ty{font-size:.76rem;color:var(--muted)}
+.led .a{padding:10px 14px 10px 4px;text-align:right;font-variant-numeric:tabular-nums}
+.led .a b{display:block}
+.led .a.cr b{color:var(--ink)}
+.led .a.pm b{color:var(--good)}
+.led .a span{font-size:.76rem;color:var(--muted)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:4px 14px 16px;margin-top:12px}
+.card h3{font-size:1rem;margin-top:14px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.card .acts .btn{flex:1 1 auto}
+
+.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);z-index:20}
+.tabs-in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.tab{background:none;border:0;border-top:3px solid transparent;margin-top:-1px;min-height:54px;padding:8px 2px;font-weight:700;font-size:.82rem;color:var(--muted)}
+.tab[aria-current="page"]{color:var(--ink);border-top-color:var(--ink)}
+.tab .n{display:inline-block;min-width:20px;margin-left:5px;padding:0 6px;border-radius:99px;background:var(--bad-bg);color:var(--bad);font-size:.74rem}
+.fab{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(68px + env(safe-area-inset-bottom,0px));min-height:54px;padding:0 22px;border-radius:99px;border:0;background:var(--ink);color:var(--on-ink);font-weight:800;box-shadow:0 6px 18px rgba(0,0,0,.28);z-index:21}
+
+#sheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.scrim{position:absolute;inset:0;background:var(--scrim)}
+.panel{position:relative;width:100%;max-width:560px;max-height:94%;overflow:auto;background:var(--card);border-radius:16px 16px 0 0;padding-block:18px max(18px,env(safe-area-inset-bottom,0px));padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));box-shadow:0 -8px 30px rgba(0,0,0,.25)}
+.panel h2{font-size:1.2rem;margin-bottom:4px}
+.picked{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;margin-top:6px}
+.picked b{display:block;overflow-wrap:anywhere}
+.picked small{color:var(--muted)}
+.sugg{display:flex;justify-content:space-between;gap:10px;width:100%;min-height:46px;align-items:center;padding:0 12px;background:none;border:0;border-bottom:1px solid var(--line);text-align:left}
+.sugg small{color:var(--muted);font-variant-numeric:tabular-nums}
+.sugg.add{color:var(--ink);font-weight:700}
+#es-sugg{margin-top:4px;max-height:34vh;overflow:auto}
+.warnbox{margin-top:14px;padding:12px;border-radius:10px;background:var(--warn-bg);color:var(--warn)}
+.warnbox ul{margin:6px 0 0;padding-left:18px}
+
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(132px + env(safe-area-inset-bottom,0px));max-width:min(92vw,420px);background:var(--text);color:var(--paper);padding:10px 16px;border-radius:10px;font-weight:600;font-size:.92rem;z-index:80;text-align:center}
+
+#lock{position:fixed;inset:0;z-index:60;background:var(--paper);display:flex;align-items:center;justify-content:center;padding:24px}
+.pad{width:100%;max-width:320px;text-align:center}
+.pad h2{font-size:1.3rem}
+.pad .sub{color:var(--muted);min-height:1.4em;margin-top:6px}
+.dots{display:flex;gap:14px;justify-content:center;margin:18px 0 24px}
+.dots i{width:16px;height:16px;border-radius:50%;border:2px solid var(--ink)}
+.dots i.on{background:var(--ink)}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.keys button{height:62px;border-radius:14px;border:1px solid var(--line);background:var(--card);font-size:1.5rem;font-weight:700}
+.pad .btn{margin-top:8px;width:100%}
+.filebtn{cursor:pointer}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="top" id="top"></header>
+  <main id="view"></main>
+</div>
+<nav class="tabs"><div class="tabs-in" id="tabs-in"></div></nav>
+<button class="fab" id="fab" data-act="new-entry"></button>
+<div id="sheet" hidden></div>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+<div id="lock" hidden></div>
+<input type="file" id="st-file" accept=".json,application/json" hidden>
+
+<script>
+'use strict';
+/* ---------- helpers ---------- */
+const KEY = 'duka-ledger-v1';
+const DAY = 864e5;
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nf = new Intl.NumberFormat('en-KE', {maximumFractionDigits: 2});
+const money = n => 'KSh ' + nf.format(n);
+const r2 = n => Math.round(n * 100) / 100;
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+/* ---------- translations ---------- */
+const L = {
+en: {
+  app:'Duka Ledger', tabOwes:'Owes', tabOverdue:'Overdue', tabCustomers:'Customers', tabSettings:'Settings',
+  totalOwed:'Total owed', owingCount:'Customers owing: {n}', overdueCount:'Overdue: {n}',
+  searchPh:'Search name or phone', noOwes:'Nobody owes you right now.', noOverdue:'Nobody has owed for {n}+ days.', noMatch:'No customers match.',
+  emptyTitle:'Start your ledger', emptyBody:'Add your first customer, then record credit and payments in a few taps. Everything stays on this phone.',
+  addFirst:'Add a customer', trySample:'Try with sample customers', sampleNote:'These are sample customers.', removeSamples:'Remove samples', sample:'Sample',
+  newEntry:'New entry', customer:'Customer', change:'Change', amount:'Amount (KSh)', note:'Note (optional)', notePh:'sugar, bread',
+  credit:'Credit', payment:'Payment', saveCredit:'Save credit', savePayment:'Save payment', cancel:'Cancel', save:'Save', back:'Back', del:'Delete', edit:'Edit',
+  pickCustomer:'Choose a customer first.', enterAmount:'Enter an amount.', addNew:'Add "{q}" as a new customer',
+  owes:'Owes {amt}', noDebt:'No debt',
+  warnTitle:'{name} is over the limit', warnAmt:'New balance {bal} is above the {lim} limit.', warnDays:'Has unpaid credit older than {d} days (oldest is {n} days).',
+  addAnyway:'Add anyway', goBack:'Go back',
+  newCustomer:'New customer', editCustomer:'Edit customer', name:'Name', phone:'Phone', limitAmount:'Credit limit (KSh)', limitDays:'Days allowed to pay',
+  limitBlank:'Leave blank to use the shop default.', nameNeeded:'Enter a name.',
+  paidAhead:'Paid ahead', settled:'Settled', today:'Today', day1:'1 day', days:'{n} days', oldest:'Oldest unpaid: {d}',
+  pastDue:'Past due', overLimit:'Over limit', limAmt:'Limit {amt}', limDays:'Pay within {d} days', noLimit:'No limit set',
+  gaveCredit:'Gave credit', gotPayment:'Got payment', remind:'Send reminder', noPhone:'Add a phone number to send reminders.',
+  remindMsg:'Hello {name}, your balance at {shop} is {amt}. Please pay when you can. Thank you.', shopFallback:'our shop',
+  ledger:'Ledger', colDate:'Date', colDetails:'Details', colAmount:'Amount / Balance', bal:'Bal', noEntries:'No entries yet.',
+  delEntryQ:'Delete this entry? The balance will be recalculated.', delCustQ:'Delete {name} and all their entries?', yesDelete:'Yes, delete',
+  settings:'Settings', shopName:'Shop name', shopPh:'e.g. Mama Joy Shop', language:'Language',
+  limitsTitle:'Default limits', limitsHint:'Used for customers without their own limit. Enter 0 for no limit. You can still add credit past a limit after a warning.',
+  pinTitle:'PIN lock', pinHint:'Hides your records from customers who pick up your phone.',
+  setPin:'Set PIN', changePin:'Change PIN', removePin:'Remove PIN', lockNow:'Lock now',
+  enterPin:'Enter PIN', wrongPin:'Wrong PIN, try again.', pinNew:'Choose a 4-digit PIN', pinConfirm:'Enter it again', pinMismatch:'PINs did not match. Try again.', pinSet:'PIN set.', pinRemoved:'PIN removed.',
+  backupTitle:'Backup', backupNow:'Back up now', restore:'Restore from file', lastBackup:'Last backup: {when}', never:'never', daysAgo:'{n} days ago', yesterday:'yesterday',
+  backupHint:'Send the backup file to your WhatsApp or save it to a memory card. To use it on a new phone, open this app there and restore.',
+  nudgeBackup:'Back up your records. Last backup: {when}.', restoreQ:'Replace everything on this phone with this backup ({n} customers)?',
+  restored:'Backup restored.', badFile:'This file is not a Duka Ledger backup.', backupDone:'Backup saved.',
+  forgotPin:'Forgot PIN?', forgotTitle:'Reset with a backup', forgotBody:'Restoring a backup file replaces everything on this phone and removes the PIN. Without a backup file, the PIN cannot be reset.', chooseBackup:'Choose backup file',
+  eraseTitle:'Erase all data', eraseBtn:'Erase everything', eraseQ:'Erase all customers and entries from this phone? This cannot be undone.', erased:'All data erased.',
+  storageWarn:'This browser cannot save data. Back up before you close the app.',
+  overdueHint:'Customers whose oldest unpaid credit is {n} days old or more.', saved:'Saved.', daysPlus:'{n}+ days',
+  copy:'Copy', copied:'Message copied.', smsHint:'If Messages did not open, tap Copy and paste the message there.'
+},
+sw: {
+  app:'Daftari la Duka', tabOwes:'Madeni', tabOverdue:'Yamechelewa', tabCustomers:'Wateja', tabSettings:'Mipangilio',
+  totalOwed:'Jumla ya madeni', owingCount:'Wateja wanaodaiwa: {n}', overdueCount:'Yamechelewa: {n}',
+  searchPh:'Tafuta jina au simu', noOwes:'Hakuna mtu anayedaiwa kwa sasa.', noOverdue:'Hakuna aliye na deni la siku {n}+.', noMatch:'Hakuna mteja anayelingana.',
+  emptyTitle:'Anza daftari lako', emptyBody:'Ongeza mteja wa kwanza, kisha andika madeni na malipo kwa kugusa mara chache. Kila kitu kinabaki kwenye simu hii.',
+  addFirst:'Ongeza mteja', trySample:'Jaribu na wateja wa mfano', sampleNote:'Hawa ni wateja wa mfano.', removeSamples:'Ondoa wa mfano', sample:'Mfano',
+  newEntry:'Rekodi mpya', customer:'Mteja', change:'Badilisha', amount:'Kiasi (KSh)', note:'Maelezo (si lazima)', notePh:'sukari, mkate',
+  credit:'Deni', payment:'Malipo', saveCredit:'Hifadhi deni', savePayment:'Hifadhi malipo', cancel:'Ghairi', save:'Hifadhi', back:'Rudi', del:'Futa', edit:'Hariri',
+  pickCustomer:'Chagua mteja kwanza.', enterAmount:'Weka kiasi.', addNew:'Ongeza "{q}" kama mteja mpya',
+  owes:'Anadaiwa {amt}', noDebt:'Hana deni',
+  warnTitle:'{name} amezidi kikomo', warnAmt:'Salio jipya {bal} ni juu ya kikomo cha {lim}.', warnDays:'Ana deni lisilolipwa la zaidi ya siku {d} (kongwe zaidi ni siku {n}).',
+  addAnyway:'Ongeza hata hivyo', goBack:'Rudi nyuma',
+  newCustomer:'Mteja mpya', editCustomer:'Hariri mteja', name:'Jina', phone:'Simu', limitAmount:'Kikomo cha deni (KSh)', limitDays:'Siku za kulipa',
+  limitBlank:'Acha wazi kutumia kikomo cha duka.', nameNeeded:'Weka jina.',
+  paidAhead:'Amelipa mbele', settled:'Hana deni', today:'Leo', day1:'siku 1', days:'siku {n}', oldest:'Deni kongwe zaidi: {d}',
+  pastDue:'Amechelewa', overLimit:'Amezidi kikomo', limAmt:'Kikomo {amt}', limDays:'Lipa ndani ya siku {d}', noLimit:'Hakuna kikomo',
+  gaveCredit:'Amekopa', gotPayment:'Amelipa', remind:'Tuma ukumbusho', noPhone:'Weka namba ya simu ili kutuma ukumbusho.',
+  remindMsg:'Habari {name}, deni lako katika {shop} ni {amt}. Tafadhali lipa unapoweza. Asante.', shopFallback:'duka letu',
+  ledger:'Historia', colDate:'Tarehe', colDetails:'Maelezo', colAmount:'Kiasi / Salio', bal:'Salio', noEntries:'Bado hakuna rekodi.',
+  delEntryQ:'Futa rekodi hii? Salio litahesabiwa upya.', delCustQ:'Futa {name} na rekodi zake zote?', yesDelete:'Ndiyo, futa',
+  settings:'Mipangilio', shopName:'Jina la duka', shopPh:'mf. Duka la Mama Joy', language:'Lugha',
+  limitsTitle:'Vikomo vya kawaida', limitsHint:'Hutumika kwa wateja wasio na kikomo chao. Weka 0 kama hakuna kikomo. Bado unaweza kuongeza deni baada ya onyo.',
+  pinTitle:'Nambari ya siri (PIN)', pinHint:'Huficha rekodi zako mteja akishika simu yako.',
+  setPin:'Weka PIN', changePin:'Badilisha PIN', removePin:'Ondoa PIN', lockNow:'Funga sasa',
+  enterPin:'Weka PIN', wrongPin:'PIN si sahihi, jaribu tena.', pinNew:'Chagua PIN ya tarakimu 4', pinConfirm:'Iweke tena', pinMismatch:'PIN hazilingani. Jaribu tena.', pinSet:'PIN imewekwa.', pinRemoved:'PIN imeondolewa.',
+  backupTitle:'Nakala ya hifadhi', backupNow:'Hifadhi nakala sasa', restore:'Rudisha kutoka faili', lastBackup:'Nakala ya mwisho: {when}', never:'haijawahi', daysAgo:'siku {n} zilizopita', yesterday:'jana',
+  backupHint:'Tuma faili ya nakala kwenye WhatsApp yako au iweke kwenye kadi ya kumbukumbu. Ili kuitumia kwenye simu mpya, fungua programu hii huko kisha rudisha.',
+  nudgeBackup:'Hifadhi nakala ya rekodi zako. Nakala ya mwisho: {when}.', restoreQ:'Badilisha kila kitu kwenye simu hii na nakala hii (wateja {n})?',
+  restored:'Nakala imerudishwa.', badFile:'Faili hii si nakala ya Duka Ledger.', backupDone:'Nakala imehifadhiwa.',
+  forgotPin:'Umesahau PIN?', forgotTitle:'Rudisha kwa nakala', forgotBody:'Kurudisha faili ya nakala kunabadilisha kila kitu kwenye simu hii na kuondoa PIN. Bila faili ya nakala, PIN haiwezi kuwekwa upya.', chooseBackup:'Chagua faili ya nakala',
+  eraseTitle:'Futa data yote', eraseBtn:'Futa kila kitu', eraseQ:'Futa wateja na rekodi zote kwenye simu hii? Haiwezi kurudishwa.', erased:'Data yote imefutwa.',
+  storageWarn:'Kivinjari hiki hakiwezi kuhifadhi data. Hifadhi nakala kabla ya kufunga.',
+  overdueHint:'Wateja ambao deni lao la zamani zaidi lina siku {n} au zaidi.', saved:'Imehifadhiwa.', daysPlus:'siku {n}+',
+  copy:'Nakili', copied:'Ujumbe umenakiliwa.', smsHint:'Kama Messages haikufunguka, bonyeza Nakili kisha ubandike ujumbe.'
+}};
+
+/* ---------- state & storage ---------- */
+let storageOk = true;
+function blank(){
+  return {v:1, customers:[], entries:[], settings:{lang:'en', shop:'', defAmt:2000, defDays:14, pin:'', lastBackup:0}};
+}
+let db = blank();
+function t(k, p){
+  let s = (L[db.settings.lang] || L.en)[k];
+  if (s == null) s = L.en[k];
+  if (s == null) s = k;
+  if (p) for (const x in p) s = s.split('{' + x + '}').join(p[x]);
+  return s;
+}
+function load(){
+  try { localStorage.setItem('__t', '1'); localStorage.removeItem('__t'); } catch (e) { storageOk = false; }
+  try {
+    const s = localStorage.getItem(KEY);
+    if (s) { const d = JSON.parse(s); const b = blank(); return {v:1, customers:Array.isArray(d.customers)?d.customers:[], entries:Array.isArray(d.entries)?d.entries:[], settings:Object.assign(b.settings, d.settings || {})}; }
+  } catch (e) { storageOk = false; }
+  return blank();
+}
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(db)); storageOk = true; } catch (e) { storageOk = false; }
+}
+const cust = id => db.customers.find(c => c.id === id);
+
+/* ---------- ledger maths ---------- */
+/* Payments are applied to the oldest credit first. "Days owing" is the age of the oldest credit still unpaid. */
+function stats(c, list){
+  const es = (list || db.entries.filter(e => e.cid === c.id)).slice().sort((a, b) => a.ts - b.ts);
+  let credit = 0, paid = 0, lastPay = 0;
+  for (const e of es) { if (e.type === 'credit') credit += e.amt; else { paid += e.amt; if (e.ts > lastPay) lastPay = e.ts; } }
+  const bal = r2(credit - paid);
+  let oldest = 0;
+  if (bal > 0) {
+    let p = paid;
+    for (const e of es) {
+      if (e.type !== 'credit') continue;
+      if (p >= e.amt - 0.005) { p -= e.amt; continue; }
+      oldest = e.ts; break;
+    }
+  }
+  const days = oldest ? Math.max(0, Math.floor((Date.now() - oldest) / DAY)) : 0;
+  const limA = c.limitAmt > 0 ? c.limitAmt : db.settings.defAmt;
+  const limD = c.limitDays > 0 ? c.limitDays : db.settings.defDays;
+  return {bal, days, oldest, lastPay, limA, limD, es,
+          overAmt: limA > 0 && bal > limA,
+          overDays: limD > 0 && bal > 0 && days > limD};
+}
+let SA = null;
+function allStats(){
+  if (SA) return SA;
+  const m = {};
+  for (const e of db.entries) (m[e.cid] || (m[e.cid] = [])).push(e);
+  SA = db.customers.map(c => ({c, s: stats(c, m[c.id] || [])}));
+  return SA;
+}
+const dl = n => n <= 0 ? t('today') : n === 1 ? t('day1') : t('days', {n});
+function whenText(ts){
+  if (!ts) return t('never');
+  const n = Math.floor((Date.now() - ts) / DAY);
+  return n <= 0 ? t('today') : n === 1 ? t('yesterday') : t('daysAgo', {n});
+}
+function locale(){ return db.settings.lang === 'sw' ? 'sw-KE' : 'en-KE'; }
+function waNumber(p){
+  let d = String(p || '').replace(/\D/g, '');
+  if (!d) return '';
+  if (d.startsWith('00')) d = d.slice(2);
+  if (d.startsWith('0')) d = '254' + d.slice(1);
+  else if (d.length === 9 && /^[17]/.test(d)) d = '254' + d;
+  return d;
+}
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function remindText(c, s){
+  return t('remindMsg', {name:c.name, shop:db.settings.shop || t('shopFallback'), amt:money(s.bal)});
+}
+function remindLinks(c, s){
+  const n = waNumber(c.phone);
+  if (!n) return null;
+  const q = encodeURIComponent(remindText(c, s));
+  /* Android reads "?body=", iPhone reads "&body=" */
+  return {wa:'https://wa.me/' + n + '?text=' + q, sms:'sms:+' + n + (isIOS ? '&' : '?') + 'body=' + q};
+}
+function remindBtns(c, s){
+  if (!(s.bal > 0)) return '';
+  const lk = remindLinks(c, s);
+  return (lk ? '<a class="btn sm" href="' + lk.wa + '" target="_blank" rel="noopener">WhatsApp</a>' +
+               '<button class="btn sm" data-act="sms" data-id="' + c.id + '">SMS</button>' : '') +
+    '<button class="btn sm ghost" data-act="copy-msg" data-id="' + c.id + '">' + esc(t('copy')) + '</button>';
+}
+function openSms(href){
+  let left = false;
+  const mark = () => { if (document.hidden) left = true; };
+  const mark2 = () => { left = true; };
+  document.addEventListener('visibilitychange', mark);
+  window.addEventListener('blur', mark2);
+  const a = document.createElement('a');
+  a.href = href; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => {
+    document.removeEventListener('visibilitychange', mark);
+    window.removeEventListener('blur', mark2);
+    if (!left) toast(t('smsHint'));
+  }, 1800);
+}
+async function copyText(txt){
+  try { await navigator.clipboard.writeText(txt); return true; }
+  catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (_) {}
+    ta.remove();
+    return ok;
+  }
+}
+function matches(c, q){
+  if (!q) return true;
+  const ql = q.toLowerCase(), qd = q.replace(/\D/g, '');
+  return c.name.toLowerCase().includes(ql) || (qd.length > 0 && String(c.phone || '').replace(/\D/g, '').includes(qd));
+}
+
+/* ---------- ui state ---------- */
+let ui = {tab:'owes', q:'', od:7, cust:null};
+let es = null;            // entry sheet state
+let pendingConfirm = null;
+
+/* ---------- navigation (phone back button + in-app Back) ----------
+   Every screen change (tab, customer) and every open sheet is one history entry,
+   so the phone's back button steps back through them instead of leaving the app. */
+let navDepth = 0, sheetPushed = false, ignorePop = 0;
+function curState(){ return {tab:ui.tab, cust:ui.cust, q:ui.q}; }
+function navTo(tab, cust){
+  if (tab === ui.tab && cust === ui.cust) { window.scrollTo(0, 0); return; }
+  try { history.replaceState(Object.assign(curState(), {sy:window.scrollY}), ''); } catch (e) {}
+  ui.tab = tab; ui.cust = cust; ui.q = '';
+  try { history.pushState(curState(), ''); navDepth++; } catch (e) {}
+  render(); window.scrollTo(0, 0);
+}
+function goBack(){
+  if (navDepth > 0) { history.back(); return; }
+  ui.cust = null;
+  try { history.replaceState(curState(), ''); } catch (e) {}
+  render();
+}
+window.addEventListener('popstate', e => {
+  if (ignorePop > 0) {            // we closed a sheet ourselves; just keep the entry in step with the screen
+    ignorePop--;
+    try { history.replaceState(curState(), ''); } catch (_) {}
+    return;
+  }
+  if (!$('#sheet').hidden) { closeSheet(true); return; }   // back pressed while a sheet is open: close it
+  const st = e.state;
+  if (!st || st.sheet) return;
+  navDepth = Math.max(0, navDepth - 1);
+  ui.tab = st.tab || 'owes'; ui.cust = st.cust || null; ui.q = st.q || '';
+  render(); window.scrollTo(0, st.sy || 0);
+});
+
+function toast(msg){
+  const el = $('#toast');
+  el.textContent = msg; el.hidden = false;
+  clearTimeout(toast.h);
+  toast.h = setTimeout(() => { el.hidden = true; }, 2800);
+}
+
+/* ---------- rendering ---------- */
+function render(){
+  SA = null;
+  document.documentElement.lang = db.settings.lang;
+  renderTop(); renderView(); renderTabs();
+  const fab = $('#fab');
+  fab.textContent = '+ ' + t('newEntry');
+  fab.hidden = !!ui.cust || ui.tab === 'settings';
+}
+function renderTop(){
+  const s = db.settings;
+  $('#top').innerHTML =
+    '<div class="brand">' + (s.shop ? '<small>' + esc(t('app')) + '</small>' + esc(s.shop) : esc(t('app'))) + '</div>' +
+    (s.pin ? '<button class="btn sm ghost" data-act="lock-now">' + esc(t('lockNow')) + '</button>' : '');
+}
+function renderTabs(){
+  const n = allStats().filter(x => x.s.bal > 0 && x.s.days >= 7).length;
+  const tabs = [['owes','tabOwes'],['overdue','tabOverdue'],['customers','tabCustomers'],['settings','tabSettings']];
+  $('#tabs-in').innerHTML = tabs.map(([k, l]) =>
+    '<button class="tab" data-act="tab" data-id="' + k + '"' + (ui.tab === k ? ' aria-current="page"' : '') + '>' + esc(t(l)) +
+    (k === 'overdue' && n ? '<span class="n">' + n + '</span>' : '') + '</button>').join('');
+}
+function renderView(){
+  const v = $('#view');
+  if (ui.cust) v.innerHTML = custView();
+  else if (ui.tab === 'owes') v.innerHTML = owesView();
+  else if (ui.tab === 'overdue') v.innerHTML = overdueView();
+  else if (ui.tab === 'customers') v.innerHTML = customersView();
+  else v.innerHTML = settingsView();
+}
+function renderList(){
+  const l = $('#list');
+  if (l) l.innerHTML = listFor(ui.tab);
+}
+
+function banners(){
+  let h = '';
+  if (!storageOk) h += '<div class="banner">' + esc(t('storageWarn')) + '</div>';
+  if (db.customers.some(c => c.sample)) h += '<div class="banner"><span>' + esc(t('sampleNote')) + '</span><button class="btn sm" data-act="rm-sample">' + esc(t('removeSamples')) + '</button></div>';
+  else if (db.entries.length && Date.now() - db.settings.lastBackup > 7 * DAY)
+    h += '<div class="banner"><span>' + esc(t('nudgeBackup', {when:whenText(db.settings.lastBackup)})) + '</span><button class="btn sm" data-act="backup">' + esc(t('backupNow')) + '</button></div>';
+  return h;
+}
+function emptyState(){
+  return '<div class="empty"><h2>' + esc(t('emptyTitle')) + '</h2><p>' + esc(t('emptyBody')) + '</p>' +
+    '<button class="btn primary" data-act="add-cust">' + esc(t('addFirst')) + '</button>' +
+    '<button class="btn" data-act="sample">' + esc(t('trySample')) + '</button></div>';
+}
+
+function rowHtml(c, s, withRemind){
+  const tags = [];
+  if (s.overDays) tags.push('<span class="tag bad">' + esc(t('pastDue')) + '</span>');
+  if (s.overAmt) tags.push('<span class="tag warn">' + esc(t('overLimit')) + '</span>');
+  if (c.sample) tags.push('<span class="tag">' + esc(t('sample')) + '</span>');
+  let right;
+  if (s.bal > 0) right = '<span class="amt">' + money(s.bal) + '</span><small class="' + (s.overDays ? 'bad-t' : '') + '">' + esc(dl(s.days)) + '</small>';
+  else if (s.bal < 0) right = '<span class="amt good">' + money(-s.bal) + '</span><small>' + esc(t('paidAhead')) + '</small>';
+  else right = '<span class="amt zero">' + money(0) + '</span><small>' + esc(t('settled')) + '</small>';
+  const rb = withRemind ? remindBtns(c, s) : '';
+  const act = rb ? '<div class="row-act">' + rb + '</div>' : '';
+  return '<div class="row"><button class="row-main" data-act="open" data-id="' + c.id + '"><span class="who"><b>' + esc(c.name) + '</b><small>' +
+    esc(c.phone || '') + '</small>' + tags.join('') + '</span><span class="rt">' + right + '</span></button>' + act + '</div>';
+}
+function listFor(kind){
+  const q = ui.q.trim();
+  let items = allStats().filter(x => matches(x.c, q));
+  let none;
+  if (kind === 'owes') { items = items.filter(x => x.s.bal > 0).sort((a, b) => b.s.bal - a.s.bal); none = t('noOwes'); }
+  else if (kind === 'overdue') { items = items.filter(x => x.s.bal > 0 && x.s.days >= ui.od).sort((a, b) => b.s.days - a.s.days || b.s.bal - a.s.bal); none = t('noOverdue', {n:ui.od}); }
+  else { items = items.sort((a, b) => a.c.name.localeCompare(b.c.name)); none = t('noMatch'); }
+  if (q && !items.length) none = t('noMatch');
+  if (!items.length) return '<div class="book"><div class="none">' + esc(none) + '</div></div>';
+  return '<div class="book">' + items.map(x => rowHtml(x.c, x.s, kind === 'overdue')).join('') + '</div>';
+}
+function owesView(){
+  const owing = allStats().filter(x => x.s.bal > 0);
+  const total = r2(owing.reduce((a, x) => a + x.s.bal, 0));
+  const od = owing.filter(x => x.s.days >= 7).length;
+  let h = banners();
+  h += '<section class="total"><div class="label">' + esc(t('totalOwed')) + '</div><div class="big">' + money(total) + '</div>' +
+       '<div class="subline">' + esc(t('owingCount', {n:owing.length})) + (od ? ' · <span class="bad-t">' + esc(t('overdueCount', {n:od})) + '</span>' : '') + '</div></section>';
+  if (!db.customers.length) return h + emptyState();
+  h += '<input id="q" class="inp" type="search" autocomplete="off" placeholder="' + esc(t('searchPh')) + '" value="' + esc(ui.q) + '">';
+  return h + '<div id="list">' + listFor('owes') + '</div>';
+}
+function overdueView(){
+  const seg = [7, 14, 30].map(n => '<button data-act="od" data-id="' + n + '" aria-pressed="' + (ui.od === n) + '">' + esc(t('daysPlus', {n})) + '</button>').join('');
+  return '<h2 class="h">' + esc(t('tabOverdue')) + '</h2><div class="seg">' + seg + '</div><p class="hint">' + esc(t('overdueHint', {n:ui.od})) + '</p><div id="list">' + listFor('overdue') + '</div>';
+}
+function customersView(){
+  let h = '<div class="acts" style="justify-content:space-between;margin:12px 0"><h2 class="h" style="margin:0">' + esc(t('tabCustomers')) + '</h2><button class="btn primary sm" data-act="add-cust">+ ' + esc(t('newCustomer')) + '</button></div>';
+  if (!db.customers.length) return h + emptyState();
+  h += '<input id="q" class="inp" type="search" autocomplete="off" placeholder="' + esc(t('searchPh')) + '" value="' + esc(ui.q) + '">';
+  return h + '<div id="list">' + listFor('customers') + '</div>';
+}
+
+function custView(){
+  const c = cust(ui.cust);
+  if (!c) { ui.cust = null; return owesView(); }
+  const s = stats(c), lk = remindLinks(c, s);
+  const tags = [];
+  if (s.overDays) tags.push('<span class="tag bad">' + esc(t('pastDue')) + '</span>');
+  if (s.overAmt) tags.push('<span class="tag warn">' + esc(t('overLimit')) + '</span>');
+  const lim = [];
+  if (s.limA > 0) lim.push(t('limAmt', {amt:money(s.limA)}));
+  if (s.limD > 0) lim.push(t('limDays', {d:s.limD}));
+  let balTxt = s.bal > 0 ? money(s.bal) : s.bal < 0 ? money(-s.bal) + ' · ' + t('paidAhead') : t('settled');
+  let h = '<button class="back" data-act="back">‹ ' + esc(t('back')) + '</button>' +
+    '<section class="head"><h2>' + esc(c.name) + '</h2><div class="ph">' + esc(c.phone || '') + '</div>' +
+    '<div class="big">' + esc(balTxt) + '</div> ' + tags.join('') +
+    '<div class="lim">' + esc(lim.length ? lim.join(' · ') : t('noLimit')) + (s.bal > 0 ? ' · ' + esc(t('oldest', {d:dl(s.days)})) : '') + '</div>' +
+    '<div class="two-btn"><button class="btn primary" data-act="entry-for" data-id="' + c.id + '" data-type="credit">' + esc(t('gaveCredit')) + '</button>' +
+    '<button class="btn pay primary" data-act="entry-for" data-id="' + c.id + '" data-type="payment">' + esc(t('gotPayment')) + '</button></div>' +
+    '<div class="acts">';
+  h += remindBtns(c, s);
+  h += '<button class="btn sm ghost" data-act="edit-cust" data-id="' + c.id + '">' + esc(t('edit')) + '</button></div>';
+  if (s.bal > 0 && !lk) h += '<p class="hint">' + esc(t('noPhone')) + '</p>';
+  h += '</section><h3 class="label">' + esc(t('ledger')) + '</h3>';
+  if (!s.es.length) return h + '<div class="book"><div class="none">' + esc(t('noEntries')) + '</div></div>';
+  let run = 0;
+  const rows = s.es.map(e => { run = r2(run + (e.type === 'credit' ? e.amt : -e.amt)); return {e, run}; }).reverse();
+  h += '<div class="book"><div class="led-h"><span>' + esc(t('colDate')) + '</span><span>' + esc(t('colDetails')) + '</span><span>' + esc(t('colAmount')) + '</span></div>';
+  for (const {e, run:r} of rows) {
+    const d = new Date(e.ts);
+    const yr = d.getFullYear() !== new Date().getFullYear() ? ' ' + String(d.getFullYear()).slice(2) : '';
+    const isC = e.type === 'credit';
+    h += '<div class="led"><div class="d"><b>' + d.getDate() + '</b><span>' + esc(d.toLocaleDateString(locale(), {month:'short'}) + yr) + '</span></div>' +
+      '<div class="m"><div class="what">' + esc(e.note || t(isC ? 'credit' : 'payment')) + '</div>' +
+      (e.note ? '<div class="ty">' + esc(t(isC ? 'credit' : 'payment')) + '</div>' : '') +
+      '<button class="link sm" data-act="del-entry" data-id="' + e.id + '">' + esc(t('del')) + '</button></div>' +
+      '<div class="a ' + (isC ? 'cr' : 'pm') + '"><b>' + (isC ? '+' : '−') + nf.format(e.amt) + '</b><span>' + esc(t('bal')) + ' ' + nf.format(r) + '</span></div></div>';
+  }
+  return h + '</div>';
+}
+
+function settingsView(){
+  const s = db.settings;
+  let h = '<h2 class="h">' + esc(t('settings')) + '</h2>';
+  h += '<section class="card"><label class="lbl" for="st-shop">' + esc(t('shopName')) + '</label>' +
+    '<input id="st-shop" class="inp" data-set="shop" value="' + esc(s.shop) + '" placeholder="' + esc(t('shopPh')) + '">' +
+    '<div class="lbl">' + esc(t('language')) + '</div><div class="seg" style="margin-bottom:0">' +
+    '<button data-act="lang" data-id="en" aria-pressed="' + (s.lang === 'en') + '">English</button>' +
+    '<button data-act="lang" data-id="sw" aria-pressed="' + (s.lang === 'sw') + '">Kiswahili</button></div></section>';
+  h += '<section class="card"><h3>' + esc(t('limitsTitle')) + '</h3><p class="hint">' + esc(t('limitsHint')) + '</p><div class="two">' +
+    '<div><label class="lbl" for="st-la">' + esc(t('limitAmount')) + '</label><input id="st-la" class="inp" inputmode="numeric" data-set="defAmt" value="' + s.defAmt + '"></div>' +
+    '<div><label class="lbl" for="st-ld">' + esc(t('limitDays')) + '</label><input id="st-ld" class="inp" inputmode="numeric" data-set="defDays" value="' + s.defDays + '"></div></div></section>';
+  h += '<section class="card"><h3>' + esc(t('pinTitle')) + '</h3><p class="hint">' + esc(t('pinHint')) + '</p><div class="acts">' +
+    (s.pin ? '<button class="btn" data-act="pin-change">' + esc(t('changePin')) + '</button><button class="btn ghost" data-act="pin-remove">' + esc(t('removePin')) + '</button>'
+           : '<button class="btn primary" data-act="pin-set">' + esc(t('setPin')) + '</button>') + '</div></section>';
+  h += '<section class="card"><h3>' + esc(t('backupTitle')) + '</h3><p class="hint">' + esc(t('lastBackup', {when:whenText(s.lastBackup)})) + '</p><div class="acts">' +
+    '<button class="btn primary" data-act="backup">' + esc(t('backupNow')) + '</button><button class="btn" data-act="restore">' + esc(t('restore')) + '</button></div>' +
+    '<p class="hint" style="margin-top:12px">' + esc(t('backupHint')) + '</p></section>';
+  h += '<section class="card"><h3>' + esc(t('eraseTitle')) + '</h3><div class="acts"><button class="btn danger" data-act="erase">' + esc(t('eraseBtn')) + '</button></div></section>';
+  return h;
+}
+
+/* ---------- sheets ---------- */
+function openSheet(html){
+  const r = $('#sheet');
+  r.innerHTML = '<div class="scrim" data-act="close-sheet"></div><div class="panel" role="dialog" aria-modal="true">' + html + '</div>';
+  r.hidden = false;
+  document.body.classList.add('noscroll');
+  if (!sheetPushed) {
+    try { history.pushState(Object.assign(curState(), {sheet:1}), ''); sheetPushed = true; } catch (e) {}
+  }
+}
+function closeSheet(fromPop){
+  const r = $('#sheet');
+  r.hidden = true; r.innerHTML = '';
+  document.body.classList.remove('noscroll');
+  es = null;
+  if (sheetPushed) {
+    sheetPushed = false;
+    if (fromPop !== true) { ignorePop++; try { history.back(); } catch (e) { ignorePop--; } }
+  }
+}
+function openConfirm(msg, yesLabel, fn, danger){
+  pendingConfirm = fn;
+  openSheet('<p style="font-size:1.05rem">' + esc(msg) + '</p><div class="btns"><button class="btn ghost" data-act="close-sheet">' + esc(t('cancel')) + '</button>' +
+    '<button class="btn ' + (danger ? 'danger' : 'primary') + '" data-act="confirm-yes">' + esc(yesLabel) + '</button></div>');
+}
+
+function openEntry(cid, type){
+  es = {cid:cid || null, type:type || 'credit', amt:'', note:'', q:'', warn:null};
+  drawEntry();
+}
+function syncEs(){
+  if (!es) return;
+  const a = $('#es-amt'), n = $('#es-note'), q = $('#es-q');
+  if (a) es.amt = a.value;
+  if (n) es.note = n.value;
+  if (q) es.q = q.value;
+}
+function drawEntry(){
+  const c = es.cid ? cust(es.cid) : null;
+  const s = c ? stats(c) : null;
+  const isC = es.type === 'credit';
+  let h = '<h2>' + esc(t('newEntry')) + '</h2>';
+  if (c) {
+    h += '<div class="picked"><div><b>' + esc(c.name) + '</b><small>' + esc(s.bal > 0 ? t('owes', {amt:money(s.bal)}) : t('noDebt')) + '</small></div>' +
+         '<button class="link" data-act="es-change">' + esc(t('change')) + '</button></div>';
+  } else {
+    h += '<label class="lbl" for="es-q">' + esc(t('customer')) + '</label><input id="es-q" class="inp" type="search" autocomplete="off" placeholder="' + esc(t('searchPh')) + '" value="' + esc(es.q) + '"><div id="es-sugg"></div>';
+  }
+  h += '<div class="seg" style="margin-top:14px"><button data-act="es-type" data-id="credit" aria-pressed="' + isC + '">' + esc(t('credit')) + '</button>' +
+       '<button class="pay" data-act="es-type" data-id="payment" aria-pressed="' + !isC + '">' + esc(t('payment')) + '</button></div>';
+  h += '<label class="lbl" for="es-amt" style="margin-top:0">' + esc(t('amount')) + '</label><input id="es-amt" class="inp big-in" inputmode="decimal" autocomplete="off" placeholder="0" value="' + esc(es.amt) + '">';
+  h += '<label class="lbl" for="es-note">' + esc(t('note')) + '</label><input id="es-note" class="inp" autocomplete="off" placeholder="' + esc(t('notePh')) + '" value="' + esc(es.note) + '">';
+  if (es.warn && c) {
+    h += '<div class="warnbox"><b>' + esc(t('warnTitle', {name:c.name})) + '</b><ul>' + es.warn.map(w => '<li>' + esc(w) + '</li>').join('') + '</ul></div>' +
+         '<div class="btns"><button class="btn ghost" data-act="es-unwarn">' + esc(t('goBack')) + '</button><button class="btn danger" data-act="es-force">' + esc(t('addAnyway')) + '</button></div>';
+  } else {
+    h += '<div class="btns"><button class="btn ghost" data-act="close-sheet">' + esc(t('cancel')) + '</button>' +
+         '<button class="btn ' + (isC ? 'primary' : 'pay primary') + '" data-act="es-save">' + esc(t(isC ? 'saveCredit' : 'savePayment')) + '</button></div>';
+  }
+  openSheet(h);
+  if (!c) fillSugg();
+  setTimeout(() => { const f = $(c ? '#es-amt' : '#es-q'); if (f) f.focus(); }, 60);
+}
+function fillSugg(){
+  const box = $('#es-sugg');
+  if (!box || !es) return;
+  const q = es.q.trim(), ql = q.toLowerCase();
+  const touch = {};
+  for (const e of db.entries) if (!touch[e.cid] || e.ts > touch[e.cid]) touch[e.cid] = e.ts;
+  const sm = {};
+  for (const x of allStats()) sm[x.c.id] = x.s;
+  const list = db.customers.filter(c => matches(c, q))
+    .sort((a, b) => (touch[b.id] || b.created || 0) - (touch[a.id] || a.created || 0)).slice(0, 6);
+  let h = list.map(c => {
+    const s = sm[c.id];
+    return '<button class="sugg" data-act="es-pick" data-id="' + c.id + '"><span>' + esc(c.name) + '</span><small>' + (s && s.bal > 0 ? money(s.bal) : '') + '</small></button>';
+  }).join('');
+  if (q && !db.customers.some(c => c.name.toLowerCase() === ql))
+    h += '<button class="sugg add" data-act="es-newc">+ ' + esc(t('addNew', {q})) + '</button>';
+  box.innerHTML = h;
+}
+function saveEntry(force){
+  syncEs();
+  if (!es.cid) { toast(t('pickCustomer')); return; }
+  const amt = r2(parseFloat(String(es.amt).replace(/[^0-9.]/g, '')));
+  if (!(amt > 0)) { toast(t('enterAmount')); const f = $('#es-amt'); if (f) f.focus(); return; }
+  const c = cust(es.cid), s = stats(c);
+  if (es.type === 'credit' && !force) {
+    const why = [], nb = r2(s.bal + amt);
+    if (s.limA > 0 && nb > s.limA) why.push(t('warnAmt', {bal:money(nb), lim:money(s.limA)}));
+    if (s.limD > 0 && s.bal > 0 && s.days > s.limD) why.push(t('warnDays', {d:s.limD, n:s.days}));
+    if (why.length) { es.warn = why; drawEntry(); return; }
+  }
+  db.entries.push({id:uid(), cid:c.id, type:es.type, amt, note:es.note.trim(), ts:Date.now()});
+  save(); closeSheet(); render();
+  const ns = stats(c);
+  toast(c.name + ': ' + (ns.bal > 0 ? t('owes', {amt:money(ns.bal)}) : ns.bal < 0 ? t('paidAhead') : t('settled')));
+}
+
+function openCust(id){
+  const c = id ? cust(id) : null;
+  let h = '<h2>' + esc(t(c ? 'editCustomer' : 'newCustomer')) + '</h2>' +
+    '<label class="lbl" for="cs-name">' + esc(t('name')) + '</label><input id="cs-name" class="inp" autocomplete="off" value="' + esc(c ? c.name : '') + '">' +
+    '<label class="lbl" for="cs-phone">' + esc(t('phone')) + '</label><input id="cs-phone" class="inp" type="tel" inputmode="tel" autocomplete="off" placeholder="07xx xxx xxx" value="' + esc(c ? c.phone : '') + '">' +
+    '<div class="two"><div><label class="lbl" for="cs-la">' + esc(t('limitAmount')) + '</label><input id="cs-la" class="inp" inputmode="numeric" placeholder="' + db.settings.defAmt + '" value="' + (c && c.limitAmt ? c.limitAmt : '') + '"></div>' +
+    '<div><label class="lbl" for="cs-ld">' + esc(t('limitDays')) + '</label><input id="cs-ld" class="inp" inputmode="numeric" placeholder="' + db.settings.defDays + '" value="' + (c && c.limitDays ? c.limitDays : '') + '"></div></div>' +
+    '<p class="hint">' + esc(t('limitBlank')) + '</p>' +
+    '<div class="btns"><button class="btn ghost" data-act="close-sheet">' + esc(t('cancel')) + '</button><button class="btn primary" data-act="cs-save" data-id="' + (c ? c.id : '') + '">' + esc(t('save')) + '</button></div>';
+  if (c) h += '<div class="btns"><button class="btn danger" data-act="cs-del" data-id="' + c.id + '">' + esc(t('del')) + '</button></div>';
+  openSheet(h);
+  setTimeout(() => { const f = $('#cs-name'); if (f && !c) f.focus(); }, 60);
+}
+function saveCust(id){
+  const name = $('#cs-name').value.trim();
+  if (!name) { toast(t('nameNeeded')); $('#cs-name').focus(); return; }
+  const num = v => Math.max(0, Math.round(parseFloat(v) || 0));
+  const data = {name, phone:$('#cs-phone').value.trim(), limitAmt:num($('#cs-la').value), limitDays:num($('#cs-ld').value)};
+  if (id) Object.assign(cust(id), data);
+  else db.customers.push(Object.assign({id:uid(), created:Date.now()}, data));
+  save(); closeSheet(); render(); toast(t('saved'));
+}
+
+/* ---------- PIN lock ---------- */
+function hashPin(p){
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  const s = 'duka|' + p;
+  for (let i = 0, ch; i < s.length; i++) { ch = s.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+function hidePad(){ const el = $('#lock'); el.hidden = true; el.innerHTML = ''; el.onclick = null; }
+function showPad(o){
+  const el = $('#lock');
+  let buf = '';
+  el.hidden = false;
+  function draw(msg){
+    let keys = '';
+    for (let i = 1; i <= 9; i++) keys += '<button data-pad="' + i + '">' + i + '</button>';
+    keys += '<span></span><button data-pad="0">0</button><button data-pad="del" aria-label="Delete">←</button>';
+    el.innerHTML = '<div class="pad"><h2>' + esc(o.title) + '</h2><p class="sub">' + esc(msg || '') + '</p><div class="dots">' +
+      [0, 1, 2, 3].map(i => '<i class="' + (i < buf.length ? 'on' : '') + '"></i>').join('') + '</div><div class="keys">' + keys + '</div>' +
+      (o.cancelable ? '<button class="btn ghost" data-pad="cancel">' + esc(t('cancel')) + '</button>' : '') +
+      (o.forgot ? '<button class="link" data-pad="forgot">' + esc(t('forgotPin')) + '</button>' : '') + '</div>';
+  }
+  el.onclick = e => {
+    const b = e.target.closest('[data-pad]');
+    if (!b) return;
+    const k = b.dataset.pad;
+    if (k === 'cancel') { hidePad(); return; }
+    if (k === 'forgot') {
+      el.innerHTML = '<div class="pad"><h2>' + esc(t('forgotTitle')) + '</h2><p class="sub" style="margin:10px 0 18px">' + esc(t('forgotBody')) + '</p>' +
+        '<label class="btn primary filebtn">' + esc(t('chooseBackup')) + '<input type="file" id="lock-file" accept=".json,application/json" hidden></label>' +
+        '<button class="btn ghost" data-pad="again">' + esc(t('back')) + '</button></div>';
+      return;
+    }
+    if (k === 'again') { buf = ''; draw(); return; }
+    if (k === 'del') buf = buf.slice(0, -1);
+    else if (buf.length < 4) buf += k;
+    draw();
+    if (buf.length === 4) {
+      const r = o.onDone(buf);
+      if (typeof r === 'string') { buf = ''; setTimeout(() => draw(r), 120); }
+    }
+  };
+  draw();
+}
+function lockNow(){
+  closeSheet();
+  showPad({title:t('enterPin'), forgot:true, onDone:p => { if (hashPin(p) === db.settings.pin) { hidePad(); return; } return t('wrongPin'); }});
+}
+function startSetPin(){
+  showPad({title:t('pinNew'), cancelable:true, onDone:p1 => {
+    showPad({title:t('pinConfirm'), cancelable:true, onDone:p2 => {
+      if (p2 !== p1) return t('pinMismatch');
+      db.settings.pin = hashPin(p2); save(); hidePad(); render(); toast(t('pinSet'));
+    }});
+  }});
+}
+function verifyPin(next){
+  showPad({title:t('enterPin'), cancelable:true, onDone:p => { if (hashPin(p) !== db.settings.pin) return t('wrongPin'); hidePad(); next(); }});
+}
+let hiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) hiddenAt = Date.now();
+  else if (db.settings.pin && hiddenAt && Date.now() - hiddenAt > 120000) lockNow();
+});
+
+/* ---------- backup / restore ---------- */
+function exportData(){
+  const s = Object.assign({}, db.settings); delete s.pin;
+  return JSON.stringify({app:'duka-ledger', version:1, exportedAt:Date.now(), customers:db.customers, entries:db.entries, settings:s});
+}
+function markBackup(){ db.settings.lastBackup = Date.now(); save(); render(); toast(t('backupDone')); }
+async function backup(){
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  const name = 'duka-ledger-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '.json';
+  const data = exportData();
+  try {
+    const file = new File([data], name, {type:'application/json'});
+    if (navigator.canShare && navigator.canShare({files:[file]})) { await navigator.share({files:[file], title:'Duka Ledger'}); markBackup(); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  const url = URL.createObjectURL(new Blob([data], {type:'application/json'}));
+  const a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+  markBackup();
+}
+function sanitize(d){
+  const b = blank();
+  const customers = d.customers.filter(c => c && typeof c.id === 'string' && typeof c.name === 'string').map(c => ({
+    id:c.id, name:c.name, phone:String(c.phone || ''), limitAmt:Math.max(0, Number(c.limitAmt) || 0), limitDays:Math.max(0, Number(c.limitDays) || 0),
+    created:Number(c.created) || Date.now(), sample:!!c.sample}));
+  const ids = new Set(customers.map(c => c.id));
+  const entries = d.entries.filter(e => e && ids.has(e.cid) && (e.type === 'credit' || e.type === 'payment') && isFinite(e.amt) && e.amt > 0 && isFinite(e.ts))
+    .map(e => ({id:String(e.id || uid()), cid:e.cid, type:e.type, amt:Number(e.amt), note:String(e.note || ''), ts:Number(e.ts)}));
+  const settings = Object.assign(b.settings, d.settings || {}); settings.pin = '';
+  return {v:1, customers, entries, settings};
+}
+function readBackup(file, cb){
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      if (!d || d.app !== 'duka-ledger' || !Array.isArray(d.customers) || !Array.isArray(d.entries)) throw new Error('bad');
+      cb(sanitize(d));
+    } catch (e) { toast(t('badFile')); }
+  };
+  r.onerror = () => toast(t('badFile'));
+  r.readAsText(file);
+}
+function applyRestore(inc){
+  db = inc; save(); ui = {tab:'owes', q:'', od:7, cust:null}; navDepth = 0; render(); toast(t('restored'));
+}
+
+/* ---------- sample data ---------- */
+function loadSample(){
+  const now = Date.now();
+  const mk = (name, phone, la, ld) => ({id:uid(), name, phone, limitAmt:la || 0, limitDays:ld || 0, created:now, sample:true});
+  const ev = (c, type, amt, ago, note) => db.entries.push({id:uid(), cid:c.id, type, amt, note:note || '', ts:now - ago * DAY});
+  const a = mk('Mama Joy', '0712 345 678'), b = mk('Mzee Otieno', '0723 111 222', 1500, 10), c = mk('Wanjiku', '0734 555 019'),
+        d = mk('Baba Brian', '0701 888 340'), e = mk('Kamau Hardware', '');
+  db.customers.push(a, b, c, d, e);
+  ev(a, 'credit', 450, 9, 'sugar, bread'); ev(a, 'credit', 400, 3, 'maziwa, unga');
+  ev(b, 'credit', 1200, 21, 'unga, mafuta'); ev(b, 'payment', 400, 14); ev(b, 'credit', 700, 5, 'sukari');
+  ev(c, 'credit', 2600, 35, 'school shopping');
+  ev(d, 'credit', 180, 1, 'airtime'); ev(d, 'payment', 180, 0);
+  ev(e, 'credit', 950, 16, 'cement, nails');
+  save(); render();
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', ev => {
+  const el = ev.target.closest('[data-act]');
+  if (!el) return;
+  const a = el.dataset.act, id = el.dataset.id;
+  switch (a) {
+    case 'tab': navTo(id, null); break;
+    case 'open': navTo(ui.tab, id); break;
+    case 'back': goBack(); break;
+    case 'sms': { const c = cust(id), lk = c && remindLinks(c, stats(c)); if (lk) openSms(lk.sms); break; }
+    case 'copy-msg': { const c = cust(id); if (c) copyText(remindText(c, stats(c))).then(ok => toast(ok ? t('copied') : t('smsHint'))); break; }
+    case 'new-entry': openEntry(null, 'credit'); break;
+    case 'entry-for': openEntry(id, el.dataset.type); break;
+    case 'add-cust': openCust(null); break;
+    case 'edit-cust': openCust(id); break;
+    case 'close-sheet': closeSheet(); break;
+    case 'confirm-yes': { const fn = pendingConfirm; pendingConfirm = null; closeSheet(); if (fn) fn(); break; }
+    case 'es-type': syncEs(); es.type = id; es.warn = null; drawEntry(); break;
+    case 'es-pick': es.cid = id; es.q = ''; es.warn = null; drawEntry(); break;
+    case 'es-change': syncEs(); es.cid = null; es.warn = null; drawEntry(); break;
+    case 'es-newc': {
+      const name = $('#es-q').value.trim(); if (!name) break;
+      syncEs();
+      const c = {id:uid(), name, phone:'', limitAmt:0, limitDays:0, created:Date.now()};
+      db.customers.push(c); save(); SA = null; es.cid = c.id; es.q = ''; drawEntry(); break;
+    }
+    case 'es-save': saveEntry(false); break;
+    case 'es-force': saveEntry(true); break;
+    case 'es-unwarn': syncEs(); es.warn = null; drawEntry(); break;
+    case 'cs-save': saveCust(id); break;
+    case 'cs-del': { const c = cust(id); openConfirm(t('delCustQ', {name:c.name}), t('yesDelete'), () => {
+      db.customers = db.customers.filter(x => x.id !== id); db.entries = db.entries.filter(x => x.cid !== id);
+      ui.cust = null; save(); render(); }, true); break; }
+    case 'del-entry': openConfirm(t('delEntryQ'), t('yesDelete'), () => { db.entries = db.entries.filter(x => x.id !== id); save(); render(); }, true); break;
+    case 'od': ui.od = Number(id); render(); break;
+    case 'lang': db.settings.lang = id; save(); render(); break;
+    case 'pin-set': startSetPin(); break;
+    case 'pin-change': verifyPin(startSetPin); break;
+    case 'pin-remove': verifyPin(() => { db.settings.pin = ''; save(); render(); toast(t('pinRemoved')); }); break;
+    case 'lock-now': lockNow(); break;
+    case 'backup': backup(); break;
+    case 'restore': $('#st-file').click(); break;
+    case 'erase': openConfirm(t('eraseQ'), t('eraseBtn'), () => { const s = db.settings; db = blank(); db.settings = s; db.settings.lastBackup = 0; save(); render(); toast(t('erased')); }, true); break;
+    case 'sample': loadSample(); break;
+    case 'rm-sample': {
+      const ids = new Set(db.customers.filter(c => c.sample).map(c => c.id));
+      db.customers = db.customers.filter(c => !ids.has(c.id)); db.entries = db.entries.filter(e => !ids.has(e.cid));
+      save(); render(); break;
+    }
+  }
+});
+document.addEventListener('input', e => {
+  const id = e.target.id;
+  if (id === 'q') { ui.q = e.target.value; renderList(); }
+  else if (id === 'es-q' && es) { es.q = e.target.value; fillSugg(); }
+  else if (id === 'es-amt' && es) es.amt = e.target.value;
+  else if (id === 'es-note' && es) es.note = e.target.value;
+});
+document.addEventListener('change', e => {
+  const el = e.target;
+  if (el.dataset && el.dataset.set) {
+    const k = el.dataset.set;
+    if (k === 'shop') db.settings.shop = el.value.trim();
+    else db.settings[k] = Math.max(0, Math.round(parseFloat(el.value) || 0));
+    save(); renderTop(); renderTabs(); toast(t('saved'));
+  } else if (el.id === 'st-file' && el.files && el.files[0]) {
+    readBackup(el.files[0], inc => openConfirm(t('restoreQ', {n:inc.customers.length}), t('restore'), () => applyRestore(inc), true));
+    el.value = '';
+  } else if (el.id === 'lock-file' && el.files && el.files[0]) {
+    readBackup(el.files[0], inc => { applyRestore(inc); hidePad(); });
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && es && (e.target.id === 'es-amt' || e.target.id === 'es-note')) { e.preventDefault(); saveEntry(false); }
+});
+
+function init(){
+  db = load();
+  const st = history.state;                       // after a reload, return to the screen the person was on
+  if (st && st.tab) { ui.tab = st.tab; ui.cust = st.cust && cust(st.cust) ? st.cust : null; }
+  try { history.replaceState(curState(), ''); } catch (e) {}
+  render();
+  if (db.settings.pin) lockNow();
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  }
+}
+init();
+</script>
+</body>
+</html>
