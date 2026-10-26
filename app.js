@@ -69,7 +69,7 @@ en: {
   nudgeBackup:'Back up your records. Last backup: {when}.', restoreQ:'Replace everything on this phone with this backup ({n} customers)?',
   restored:'Backup restored.', badFile:'This file is not a Duka Ledger backup.', backupDone:'Backup saved.',
   forgotPin:'Forgot PIN?', forgotTitle:'Reset with a backup', forgotBody:'Restoring a backup file replaces everything on this phone and removes the PIN. Without a backup file, the PIN cannot be reset.', chooseBackup:'Choose backup file',
-  eraseTitle:'Erase all data', eraseBtn:'Erase everything', eraseQ:'Erase all customers and entries from this phone? This cannot be undone.', erased:'All data erased.',
+ 
   storageWarn:'This browser cannot save data. Back up before you close the app.',
   overdueHint:'Customers whose oldest unpaid credit is {n} days old or more.', saved:'Saved.', daysPlus:'{n}+ days',
   copy:'Copy', copied:'Message copied.', smsHint:'If Messages did not open, tap Copy and paste the message there.',
@@ -83,7 +83,6 @@ en: {
   emailTo:'Sends to', emailAuto:'Automatic', emailNeedsKey:'Needs key', emailKey:'Email access key', emailKeyPh:'Paste your key here',
   emailKeyHint:'Optional, for automatic backups. Get a free key at web3forms.com using your own email address (the same one as above) and paste it here once. After that, every backup is emailed to you automatically with the shop name and dates. The backup passes through web3forms.com on its way to you. Without a key, Back up now opens your email app instead.',
   emailSending:'Sending backup to email…', emailSent:'Backup emailed to {to}.', emailQueued:'No internet. The email will send when you are back online.', emailRejected:'The email was not accepted. Check the access key.',
-  eraseHint:'Removes all customers and entries from this phone.',
   dzCust:'This also deletes all their entries.', delCustBtn:'Delete customer', payFull:'Full {amt}'
 },
 sw: {
@@ -122,7 +121,7 @@ sw: {
   nudgeBackup:'Hifadhi nakala ya rekodi zako. Nakala ya mwisho: {when}.', restoreQ:'Badilisha kila kitu kwenye simu hii na nakala hii (wateja {n})?',
   restored:'Nakala imerudishwa.', badFile:'Faili hii si nakala ya Duka Ledger.', backupDone:'Nakala imehifadhiwa.',
   forgotPin:'Umesahau PIN?', forgotTitle:'Rudisha kwa nakala', forgotBody:'Kurudisha faili ya nakala kunabadilisha kila kitu kwenye simu hii na kuondoa PIN. Bila faili ya nakala, PIN haiwezi kuwekwa upya.', chooseBackup:'Chagua faili ya nakala',
-  eraseTitle:'Futa data yote', eraseBtn:'Futa kila kitu', eraseQ:'Futa wateja na rekodi zote kwenye simu hii? Haiwezi kurudishwa.', erased:'Data yote imefutwa.',
+ 
   storageWarn:'Kivinjari hiki hakiwezi kuhifadhi data. Hifadhi nakala kabla ya kufunga.',
   overdueHint:'Wateja ambao deni lao la zamani zaidi lina siku {n} au zaidi.', saved:'Imehifadhiwa.', daysPlus:'siku {n}+',
   copy:'Nakili', copied:'Ujumbe umenakiliwa.', smsHint:'Kama Messages haikufunguka, bonyeza Nakili kisha ubandike ujumbe.',
@@ -136,7 +135,6 @@ sw: {
   emailTo:'Inatumwa kwa', emailAuto:'Kiotomatiki', emailNeedsKey:'Inahitaji ufunguo', emailKey:'Ufunguo wa barua pepe', emailKeyPh:'Bandika ufunguo hapa',
   emailKeyHint:'Hiari, kwa nakala za kiotomatiki. Pata ufunguo bure kwenye web3forms.com ukitumia barua pepe yako mwenyewe (ile ile ya hapo juu) kisha ubandike hapa mara moja. Baada ya hapo kila nakala hutumwa kwako kiotomatiki ikiwa na jina la duka na tarehe. Nakala hupitia web3forms.com njiani kuja kwako. Bila ufunguo, Hifadhi nakala sasa hufungua programu yako ya barua pepe.',
   emailSending:'Inatuma nakala kwa barua pepe…', emailSent:'Nakala imetumwa kwa {to}.', emailQueued:'Hakuna intaneti. Barua pepe itatumwa ukiwa mtandaoni tena.', emailRejected:'Barua pepe haikukubaliwa. Angalia ufunguo.',
-  eraseHint:'Huondoa wateja na rekodi zote kwenye simu hii.',
   dzCust:'Hii pia hufuta rekodi zake zote.', delCustBtn:'Futa mteja', payFull:'Yote {amt}'
 }};
 
@@ -625,7 +623,7 @@ function accSummary(k){
   if (k === 'pin') return t(s.pin ? 'on' : 'off');
   if (k === 'data') return t('lastBackup', {when:whenText(s.lastBackup)});
   if (k === 'email') return t(s.mailKey ? 'emailAuto' : 'emailNeedsKey');
-  return t('eraseTitle');
+  return '';
 }
 function refreshAcc(){ document.querySelectorAll('[data-sum]').forEach(el => { el.textContent = accSummary(el.dataset.sum); }); }
 function setAcc(id){
@@ -679,8 +677,6 @@ function settingsView(){
     '<div class="srow"><label class="lbl" for="st-mk">' + esc(t('emailKey')) + '</label>' +
       '<input id="st-mk" class="inp" data-setstr="mailKey" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="' + esc(t('emailKeyPh')) + '" value="' + esc(s.mailKey) + '"></div>' +
     '<div class="srow"><p class="hint">' + esc(t('emailKeyHint')) + '</p></div>');
-  h += acc('danger', 'warn', t('setDanger'),
-    '<div class="srow line"><div><b>' + esc(t('eraseTitle')) + '</b><small>' + esc(t('eraseHint')) + '</small></div><button class="btn danger sm" data-act="erase">' + esc(t('eraseBtn')) + '</button></div>', 'danger');
   return h;
 }
 
@@ -1074,7 +1070,6 @@ document.addEventListener('click', ev => {
     case 'lock-now': lockNow(); break;
     case 'backup': backup(); break;
     case 'restore': $('#st-file').click(); break;
-    case 'erase': openConfirm(t('eraseQ'), t('eraseBtn'), () => { const s = db.settings; db = blank(); db.settings = s; db.settings.lastBackup = 0; save(); render(); toast(t('erased')); }, true); break;
     case 'sample': loadSample(); break;
     case 'rm-sample': {
       const ids = new Set(db.customers.filter(c => c.sample).map(c => c.id));
