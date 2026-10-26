@@ -1,11 +1,16 @@
 /* Duka Ledger service worker: keeps the app working with no internet.
-   Opens from the saved copy first, then quietly refreshes it, so an update
-   appears the next time the app is opened. */
-const CACHE = 'duka-ledger-v2';
+   Opens from the saved copy first, then quietly refreshes it. When a new
+   version has been saved, the app shows an "Update" banner. */
+const CACHE = 'duka-ledger-v3';
 const SHELL = ['./', 'index.html', 'app.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // cache:'reload' skips the browser's HTTP cache so a new version is really fetched from the server
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(c => Promise.all(SHELL.map(u => fetch(u, {cache: 'reload'}).then(r => { if (!r.ok) throw new Error('fetch failed: ' + u); return c.put(u, r); }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', e => {
