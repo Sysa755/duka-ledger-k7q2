@@ -38,7 +38,7 @@ en: {
   totalOwed:'Total owed', owingCount:'Customers owing: {n}', overdueCount:'Overdue: {n}',
   searchPh:'Search name or phone', noOwes:'Nobody owes you right now.', noOverdue:'Nobody has owed for {n}+ days.', noMatch:'No customers match.',
   emptyTitle:'Start your ledger', emptyBody:'Add your first customer, then record credit and payments in a few taps. Everything stays on this phone.',
-  addFirst:'Add a customer', trySample:'Try with sample customers', sampleNote:'These are sample customers.', removeSamples:'Remove samples', sample:'Sample',
+  addFirst:'Add a customer',
   newEntry:'New entry', customer:'Customer', change:'Change', amount:'Amount (KSh)', note:'Note (optional)', notePh:'sugar, bread',
   credit:'Credit', payment:'Payment', saveCredit:'Save credit', savePayment:'Save payment', cancel:'Cancel', save:'Save', back:'Back', del:'Delete', edit:'Edit',
   pickCustomer:'Choose a customer first.', enterAmount:'Enter an amount.', addNew:'Add "{q}" as a new customer',
@@ -58,6 +58,8 @@ en: {
   settings:'Settings', shopName:'Shop name', shopPh:'e.g. Mama Joy Shop', language:'Language',
   limitsTitle:'Default limits', limitsHint:'Used for customers without their own limit. Enter 0 for no limit. You can still add credit past a limit after a warning.',
   pinTitle:'PIN lock', pinHint:'Locks the app and encrypts your records on this phone. If you forget the PIN, only a backup file can restore them.',
+  pinNudge:'This phone has no PIN lock yet. Set one so customers cannot see your records.',
+  restorePinQ:'Your records were locked with a PIN before. A backup file does not carry the PIN, so this phone is not locked yet. Set a PIN now?',
   tooMany:'Too many wrong tries. Wait {s} seconds.', pinWorking:'Checking…', noCrypto:'This browser cannot encrypt a PIN. Update your browser to use PIN lock.',
   badAmount:'Use numbers only, for example 250 or 250.50 (up to 10,000,000).', updReady:'A new version is ready.', updBtn:'Update',
   emailAddr:'Your email address', emailAddrPh:'you@example.com', badEmail:'That email address does not look right.', emailYours:'your email',
@@ -90,7 +92,7 @@ sw: {
   totalOwed:'Jumla ya madeni', owingCount:'Wateja wanaodaiwa: {n}', overdueCount:'Yamechelewa: {n}',
   searchPh:'Tafuta jina au simu', noOwes:'Hakuna mtu anayedaiwa kwa sasa.', noOverdue:'Hakuna aliye na deni la siku {n}+.', noMatch:'Hakuna mteja anayelingana.',
   emptyTitle:'Anza daftari lako', emptyBody:'Ongeza mteja wa kwanza, kisha andika madeni na malipo kwa kugusa mara chache. Kila kitu kinabaki kwenye simu hii.',
-  addFirst:'Ongeza mteja', trySample:'Jaribu na wateja wa mfano', sampleNote:'Hawa ni wateja wa mfano.', removeSamples:'Ondoa wa mfano', sample:'Mfano',
+  addFirst:'Ongeza mteja',
   newEntry:'Rekodi mpya', customer:'Mteja', change:'Badilisha', amount:'Kiasi (KSh)', note:'Maelezo (si lazima)', notePh:'sukari, mkate',
   credit:'Deni', payment:'Malipo', saveCredit:'Hifadhi deni', savePayment:'Hifadhi malipo', cancel:'Ghairi', save:'Hifadhi', back:'Rudi', del:'Futa', edit:'Hariri',
   pickCustomer:'Chagua mteja kwanza.', enterAmount:'Weka kiasi.', addNew:'Ongeza "{q}" kama mteja mpya',
@@ -110,6 +112,8 @@ sw: {
   settings:'Mipangilio', shopName:'Jina la duka', shopPh:'mf. Duka la Mama Joy', language:'Lugha',
   limitsTitle:'Vikomo vya kawaida', limitsHint:'Hutumika kwa wateja wasio na kikomo chao. Weka 0 kama hakuna kikomo. Bado unaweza kuongeza deni baada ya onyo.',
   pinTitle:'Nambari ya siri (PIN)', pinHint:'Hufunga programu na kusimba rekodi zako kwenye simu hii. Ukisahau PIN, ni faili ya nakala tu inayoweza kuzirudisha.',
+  pinNudge:'Simu hii haina PIN bado. Weka moja ili wateja wasione rekodi zako.',
+  restorePinQ:'Rekodi zako zilikuwa na PIN hapo awali. Faili ya nakala haibebi PIN, kwa hiyo simu hii haijafungwa bado. Weka PIN sasa?',
   tooMany:'Majaribio mengi yasiyo sahihi. Subiri sekunde {s}.', pinWorking:'Inakagua…', noCrypto:'Kivinjari hiki hakiwezi kusimba PIN. Kisasishe ili utumie PIN.',
   badAmount:'Tumia nambari tu, mfano 250 au 250.50 (hadi 10,000,000).', updReady:'Toleo jipya liko tayari.', updBtn:'Sasisha',
   emailAddr:'Barua pepe yako', emailAddrPh:'wewe@mfano.com', badEmail:'Barua pepe hiyo haionekani sahihi.', emailYours:'barua pepe yako',
@@ -141,7 +145,7 @@ sw: {
 /* ---------- state & storage ---------- */
 let storageOk = true;
 function blank(){
-  return {v:1, customers:[], entries:[], settings:{lang:'en', shop:'', defAmt:2000, defDays:14, pin:'', lastBackup:0, mailKey:'', mailPending:false, backupTo:''}};
+  return {v:1, customers:[], entries:[], settings:{lang:'en', shop:'', defAmt:2000, defDays:14, pin:'', lastBackup:0, mailKey:'', mailPending:false, backupTo:'', pinNudge:false}};
 }
 let db = blank();
 function t(k, p){
@@ -168,7 +172,7 @@ function load(){
 }
 function normDb(d){
   const b = blank();
-  return {v:1, customers:Array.isArray(d.customers)?d.customers:[], entries:Array.isArray(d.entries)?d.entries:[], settings:Object.assign(b.settings, d.settings || {})};
+  return {v:1, customers:(Array.isArray(d.customers)?d.customers:[]).map(c => { if (c && c.sample) delete c.sample; return c; }), entries:Array.isArray(d.entries)?d.entries:[], settings:Object.assign(b.settings, d.settings || {})};
 }
 function save(){
   if (locked) return;                                  // never overwrite the encrypted copy while it is still locked
@@ -243,7 +247,7 @@ async function verifyPinValue(p){
 async function enableEncryption(pin){
   const salt = b64(crypto.getRandomValues(new Uint8Array(16)));
   const key = await deriveKey(pin, salt);
-  sessionKey = key; sessionSalt = salt; db.settings.pin = 'enc';
+  sessionKey = key; sessionSalt = salt; db.settings.pin = 'enc'; db.settings.pinNudge = false;
   await encSave();
 }
 async function unlockApp(p){
@@ -467,24 +471,22 @@ function renderList(){
 function banners(){
   let h = '';
   if (!storageOk) h += '<div class="banner">' + esc(t('storageWarn')) + '</div>';
-  if (db.customers.some(c => c.sample)) h += '<div class="banner"><span>' + esc(t('sampleNote')) + '</span><button class="btn sm" data-act="rm-sample">' + esc(t('removeSamples')) + '</button></div>';
-  else if (db.entries.length && Date.now() - db.settings.lastBackup > 7 * DAY)
+  if (db.settings.pinNudge && !db.settings.pin) h += '<div class="banner"><span>' + esc(t('pinNudge')) + '</span><button class="btn sm" data-act="pin-set">' + esc(t('setPin')) + '</button></div>';
+  if (db.entries.length && Date.now() - db.settings.lastBackup > 7 * DAY)
     h += '<div class="banner"><span>' + esc(t('nudgeBackup', {when:whenText(db.settings.lastBackup)})) + '</span><button class="btn sm" data-act="backup">' + esc(t('backupNow')) + '</button></div>';
-  if (!db.settings.shop && db.customers.length && !db.customers.some(c => c.sample))
+  if (!db.settings.shop && db.customers.length)
     h += '<div class="banner"><span>' + esc(t('shopNudge')) + '</span><button class="btn sm" data-act="tab" data-id="settings">' + esc(t('openSettings')) + '</button></div>';
   return h;
 }
 function emptyState(){
   return '<div class="empty"><h2>' + esc(t('emptyTitle')) + '</h2><p>' + esc(t('emptyBody')) + '</p>' +
-    '<button class="btn primary" data-act="add-cust">' + esc(t('addFirst')) + '</button>' +
-    '<button class="btn" data-act="sample">' + esc(t('trySample')) + '</button></div>';
+    '<button class="btn primary" data-act="add-cust">' + esc(t('addFirst')) + '</button></div>';
 }
 
 function rowHtml(c, s, withRemind){
   const tags = [];
   if (s.overDays) tags.push('<span class="tag bad">' + esc(t('pastDue')) + '</span>');
   if (s.overAmt) tags.push('<span class="tag warn">' + esc(t('overLimit')) + '</span>');
-  if (c.sample) tags.push('<span class="tag">' + esc(t('sample')) + '</span>');
   let right;
   if (s.bal > 0) right = '<span class="amt">' + money(s.bal) + '</span><small class="' + (s.overDays ? 'bad-t' : '') + '">' + esc(dl(s.days)) + '</small>';
   else if (s.bal < 0) right = '<span class="amt good">' + money(-s.bal) + '</span><small>' + esc(t('paidAhead')) + '</small>';
@@ -890,7 +892,8 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------- backup / restore ---------- */
 function exportData(){
-  const s = Object.assign({}, db.settings); delete s.pin; delete s.mailKey; delete s.mailPending; delete s.backupTo;
+  const s = Object.assign({}, db.settings); const pinWasOn = !!db.settings.pin; delete s.pin; delete s.mailKey; delete s.mailPending; delete s.backupTo; delete s.pinNudge;
+  s.pinWasOn = pinWasOn;                                 // only a yes/no note; the PIN itself is never in a backup
   return JSON.stringify({app:'duka-ledger', version:1, exportedAt:Date.now(), customers:db.customers, entries:db.entries, settings:s});
 }
 /* Email backup: when an access key is saved in Settings the backup is emailed on its own (Web3Forms, free).
@@ -979,12 +982,13 @@ function sanitize(d){
   const b = blank();
   const customers = d.customers.filter(c => c && typeof c.id === 'string' && typeof c.name === 'string').map(c => ({
     id:c.id, name:c.name, phone:String(c.phone || ''), limitAmt:Math.max(0, Number(c.limitAmt) || 0), limitDays:Math.max(0, Number(c.limitDays) || 0),
-    created:Number(c.created) || Date.now(), sample:!!c.sample}));
+    created:Number(c.created) || Date.now()}));
   const ids = new Set(customers.map(c => c.id));
   const entries = d.entries.filter(e => e && ids.has(e.cid) && (e.type === 'credit' || e.type === 'payment') && isFinite(e.amt) && e.amt > 0 && isFinite(e.ts))
     .map(e => ({id:String(e.id || uid()), cid:e.cid, type:e.type, amt:Number(e.amt), note:String(e.note || ''), ts:Number(e.ts)}));
-  const settings = Object.assign(b.settings, d.settings || {}); settings.pin = ''; settings.mailKey = ''; settings.mailPending = false; settings.backupTo = '';
-  return {v:1, customers, entries, settings};
+  const hadPin = !!(d.settings && d.settings.pinWasOn === true);
+  const settings = Object.assign(b.settings, d.settings || {}); settings.pin = ''; settings.mailKey = ''; settings.mailPending = false; settings.backupTo = ''; settings.pinNudge = false; delete settings.pinWasOn;
+  return {v:1, customers, entries, settings, hadPin};
 }
 function readBackup(file, cb){
   const r = new FileReader();
@@ -1001,24 +1005,12 @@ function readBackup(file, cb){
 function applyRestore(inc){
   const mk = db.settings.mailKey || '', to = db.settings.backupTo || '';
   const wasLocked = locked, pin = wasLocked ? '' : db.settings.pin;     // forgot-PIN restore removes the PIN; a restore while unlocked keeps it
+  const hadPin = !!inc.hadPin; delete inc.hadPin;
   if (wasLocked) { sessionKey = null; sessionSalt = ''; encRec = null; locked = false; setAtt({n:0, until:0}); }
-  db = inc; db.settings.mailKey = mk; db.settings.backupTo = to; db.settings.pin = pin; save(); ui = newUi(); navDepth = 0; render(); toast(t('restored'));
-}
-
-/* ---------- sample data ---------- */
-function loadSample(){
-  const now = Date.now();
-  const mk = (name, phone, la, ld) => ({id:uid(), name, phone, limitAmt:la || 0, limitDays:ld || 0, created:now, sample:true});
-  const ev = (c, type, amt, ago, note) => db.entries.push({id:uid(), cid:c.id, type, amt, note:note || '', ts:now - ago * DAY});
-  const a = mk('Mama Joy', '0712 345 678'), b = mk('Mzee Otieno', '0723 111 222', 1500, 10), c = mk('Wanjiku', '0734 555 019'),
-        d = mk('Baba Brian', '0701 888 340'), e = mk('Kamau Hardware', '');
-  db.customers.push(a, b, c, d, e);
-  ev(a, 'credit', 450, 9, 'sugar, bread'); ev(a, 'credit', 400, 3, 'maziwa, unga');
-  ev(b, 'credit', 1200, 21, 'unga, mafuta'); ev(b, 'payment', 400, 14); ev(b, 'credit', 700, 5, 'sukari');
-  ev(c, 'credit', 2600, 35, 'school shopping');
-  ev(d, 'credit', 180, 1, 'airtime'); ev(d, 'payment', 180, 0);
-  ev(e, 'credit', 950, 16, 'cement, nails');
-  save(); render();
+  const needPin = !pin && (hadPin || wasLocked);          // the records used to be PIN-locked but this phone has no PIN: never leave that silent
+  db = inc; db.settings.mailKey = mk; db.settings.backupTo = to; db.settings.pin = pin; db.settings.pinNudge = needPin;
+  save(); ui = newUi(); navDepth = 0; render(); toast(t('restored'));
+  if (needPin) setTimeout(() => openConfirm(t('restorePinQ'), t('setPin'), startSetPin), 900);
 }
 
 /* ---------- events ---------- */
@@ -1070,12 +1062,6 @@ document.addEventListener('click', ev => {
     case 'lock-now': lockNow(); break;
     case 'backup': backup(); break;
     case 'restore': $('#st-file').click(); break;
-    case 'sample': loadSample(); break;
-    case 'rm-sample': {
-      const ids = new Set(db.customers.filter(c => c.sample).map(c => c.id));
-      db.customers = db.customers.filter(c => !ids.has(c.id)); db.entries = db.entries.filter(e => !ids.has(e.cid));
-      save(); render(); break;
-    }
   }
 });
 document.addEventListener('input', e => {
